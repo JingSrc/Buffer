@@ -123,7 +123,9 @@ void BufferPrivate::reserve(int size)
 void BufferPrivate::resize(int size)
 {
     reserve(size);
-    m_size = size;
+    if (size >= 0) {
+        m_size = size;
+    }
 }
 
 void BufferPrivate::truncate(int size)
@@ -258,13 +260,15 @@ Buffer::~Buffer()
 }
 
 Buffer::Buffer(const Buffer& other)
+    : m_ptr{ new BufferPrivate }
 {
-    *this = other;
+    *m_ptr = *other.m_ptr;
 }
 
 Buffer::Buffer(Buffer&& other)
+    : m_ptr{ new BufferPrivate }
 {
-    *this = std::move(other);
+    *m_ptr = std::move(*other.m_ptr);
 }
 
 bool Buffer::isEmpty() const
@@ -334,7 +338,7 @@ Buffer& Buffer::resize(int size)
     return *this;
 }
 
-Buffer &Buffer::truncate(int size)
+Buffer& Buffer::truncate(int size)
 {
     m_ptr->truncate(size);
     return *this;
@@ -361,6 +365,7 @@ Buffer& Buffer::append(const char* data, int size)
 Buffer& Buffer::append(const std::string& data)
 {
     append(data.c_str(), static_cast<int>(data.size()));
+    append('\0');
     return *this;
 }
 
@@ -668,7 +673,7 @@ BufferWriter& BufferWriter::operator<<(const Buffer& value)
 }
 
 template<typename T>
-BufferReader& read(BufferReader& reader, T &data)
+BufferReader& read(BufferReader& reader, T& data)
 {
     if (reader.read((char*)&data, sizeof(T)) == sizeof(T)) {
         data = crypto::fromBigEndian(data);
@@ -734,42 +739,47 @@ bool BufferReader::atEnd() const
     return (m_position >= m_buffer.size());
 }
 
-BufferReader& BufferReader::operator>>(uint8_t &value)
+BufferReader::operator bool() const
+{
+    return !atEnd();
+}
+
+BufferReader& BufferReader::operator>>(uint8_t& value)
 {
     return crypto::read(*this, value);
 }
 
-BufferReader& BufferReader::operator>>(uint16_t &value)
+BufferReader& BufferReader::operator>>(uint16_t& value)
 {
     return crypto::read(*this, value);
 }
 
-BufferReader& BufferReader::operator>>(uint32_t &value)
+BufferReader& BufferReader::operator>>(uint32_t& value)
 {
     return crypto::read(*this, value);
 }
 
-BufferReader& BufferReader::operator>>(uint64_t &value)
+BufferReader& BufferReader::operator>>(uint64_t& value)
 {
     return crypto::read(*this, value);
 }
 
-BufferReader& BufferReader::operator>>(int8_t &value)
+BufferReader& BufferReader::operator>>(int8_t& value)
 {
     return crypto::read(*this, value);
 }
 
-BufferReader& BufferReader::operator>>(int16_t &value)
+BufferReader& BufferReader::operator>>(int16_t& value)
 {
     return crypto::read(*this, value);
 }
 
-BufferReader& BufferReader::operator>>(int32_t &value)
+BufferReader& BufferReader::operator>>(int32_t& value)
 {
     return crypto::read(*this, value);
 }
 
-BufferReader& BufferReader::operator>>(int64_t &value)
+BufferReader& BufferReader::operator>>(int64_t& value)
 {
     return crypto::read(*this, value);
 }
@@ -782,15 +792,14 @@ BufferReader& BufferReader::operator>>(std::string& value)
 
     while (tmp < size) {
         if (data[tmp] == 0 || data[tmp] == '\0') {
-            ++tmp;
             break;
         }
         ++tmp;
     }
 
     if (tmp > m_position) {
-        value.assign(data + m_position, tmp - m_position + 1);
-        m_position = tmp;
+        value.assign(data + m_position, tmp - m_position);
+        m_position = tmp + 1;
     }
 
     return *this;
@@ -811,5 +820,20 @@ std::ofstream& operator <<(std::ofstream& stream, const crypto::Buffer& buffer)
 std::ifstream& operator>>(std::ifstream& stream, crypto::Buffer& buffer)
 {
     stream.read(buffer.data(), buffer.size());
+    buffer.resize(static_cast<int>(stream.gcount()));
     return stream;
 }
+
+std::fstream& operator<<(std::fstream& stream, const crypto::Buffer& buffer)
+{
+    stream.write(buffer.data(), buffer.size());
+    return stream;
+}
+
+std::fstream& operator>>(std::fstream& stream, crypto::Buffer& buffer)
+{
+    stream.read(buffer.data(), buffer.size());
+    buffer.resize(static_cast<int>(stream.gcount()));
+    return stream;
+}
+
