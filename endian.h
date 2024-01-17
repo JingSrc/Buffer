@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-bool isBigEndian()
+static bool isBigEndian()
 {
     union {
         unsigned int i;
