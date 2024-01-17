@@ -104,16 +104,17 @@ public:
     int position() const;
 
     bool atEnd() const;
+    operator bool() const;
 
-    BufferReader& operator>>(uint8_t &value);
-    BufferReader& operator>>(uint16_t &value);
-    BufferReader& operator>>(uint32_t &value);
-    BufferReader& operator>>(uint64_t &value);
+    BufferReader& operator>>(uint8_t& value);
+    BufferReader& operator>>(uint16_t& value);
+    BufferReader& operator>>(uint32_t& value);
+    BufferReader& operator>>(uint64_t& value);
 
-    BufferReader& operator>>(int8_t &value);
-    BufferReader& operator>>(int16_t &value);
-    BufferReader& operator>>(int32_t &value);
-    BufferReader& operator>>(int64_t &value);
+    BufferReader& operator>>(int8_t& value);
+    BufferReader& operator>>(int16_t& value);
+    BufferReader& operator>>(int32_t& value);
+    BufferReader& operator>>(int64_t& value);
 
     BufferReader& operator>>(std::string& value);
 
@@ -126,3 +127,5 @@ private:
 
 std::ofstream& operator<<(std::ofstream& stream, const crypto::Buffer& buffer);
 std::ifstream& operator>>(std::ifstream& stream, crypto::Buffer& buffer);
+std::fstream& operator<<(std::fstream& stream, const crypto::Buffer& buffer);
+std::fstream& operator>>(std::fstream& stream, crypto::Buffer& buffer);
