@@ -1,4 +1,4 @@
-#include <cstring>
+#include <string.h>
 
 #include "buffer.h"
 #include "endian.h"
@@ -109,11 +109,11 @@ void BufferPrivate::reserve(int size)
         return;
     }
 
-    auto tmp = reinterpret_cast<char*>(std::malloc(size));
-    std::memset(tmp, 0, size);
+    auto tmp = reinterpret_cast<char*>(malloc(size));
+    memset(tmp, 0, size);
     if (m_size > 0) {
-        std::memcpy(tmp, m_data, m_size);
-        std::free(m_data);
+        memcpy(tmp, m_data, m_size);
+        free(m_data);
     }
 
     m_data = tmp;
@@ -138,10 +138,10 @@ void BufferPrivate::truncate(int size)
         return;
     }
 
-    auto tmp = reinterpret_cast<char*>(std::malloc(size));
+    auto tmp = reinterpret_cast<char*>(malloc(size));
     if (m_size > 0) {
-        std::memcpy(tmp, m_data, size);
-        std::free(m_data);
+        memcpy(tmp, m_data, size);
+        free(m_data);
     }
 
     m_size = size;
@@ -157,7 +157,7 @@ void BufferPrivate::insert(int pos, const char* data, int size)
 
     auto len = size;
     if (len < 0) {
-        len = static_cast<int>(std::strlen(data)) + 1;
+        len = static_cast<int>(strlen(data)) + 1;
     }
 
     auto left = m_capacity - m_size;
@@ -170,20 +170,20 @@ void BufferPrivate::insert(int pos, const char* data, int size)
     }
 
     if (pos >= m_size) {
-        std::memcpy(m_data + m_size, data, len);
+        memcpy(m_data + m_size, data, len);
     }
     else {
         if (m_size > 0) {
-            std::memmove(m_data + pos + len, m_data + pos, m_size - pos);
+            memmove(m_data + pos + len, m_data + pos, m_size - pos);
         }
-        std::memcpy(m_data + pos, data, len);
+        memcpy(m_data + pos, data, len);
     }
     m_size += len;
 }
 
 void BufferPrivate::remove(int pos, int len)
 {
-    std::memmove(m_data + pos, m_data + pos + len, m_size - pos - len);
+    memmove(m_data + pos, m_data + pos + len, m_size - pos - len);
     m_size -= len;
 }
 
@@ -193,7 +193,7 @@ void BufferPrivate::clear()
     m_capacity = 0;
 
     if (m_data) {
-        std::free(m_data);
+        free(m_data);
         m_data = nullptr;
     }
 }
@@ -211,8 +211,8 @@ BufferPrivate& BufferPrivate::operator=(const BufferPrivate& other)
         }
     }
 
-    if (other.m_size > 0) {
-        std::memcpy(m_data, other.m_data, other.m_size);
+    if (other.m_size > 0 && m_data) {
+        memcpy(m_data, other.m_data, other.m_size);
     }
     return *this;
 }
@@ -307,7 +307,7 @@ bool Buffer::operator==(const Buffer& other) const
         return false;
     }
 
-    return (std::memcmp(data(), other.data(), m_ptr->size()) == 0);
+    return (memcmp(data(), other.data(), m_ptr->size()) == 0);
 }
 
 bool Buffer::operator!=(const Buffer& other) const
@@ -706,7 +706,7 @@ int BufferReader::read(char* buffer, int len)
         count = left;
     }
 
-    std::memcpy(buffer, m_buffer.data() + m_position, count);
+    memcpy(buffer, m_buffer.data() + m_position, count);
     m_position += count;
 
     return count;
@@ -809,31 +809,4 @@ BufferReader& BufferReader::operator>>(Buffer& buffer)
 {
     read(buffer.data(), buffer.size());
     return *this;
-}
-
-std::ofstream& operator <<(std::ofstream& stream, const crypto::Buffer& buffer)
-{
-    stream.write(buffer.data(), buffer.size());
-    return stream;
-}
-
-std::ifstream& operator>>(std::ifstream& stream, crypto::Buffer& buffer)
-{
-    stream.read(buffer.data(), buffer.size());
-    buffer.resize(static_cast<int>(stream.gcount()));
-    return stream;
-}
-
-std::fstream& operator<<(std::fstream& stream, const crypto::Buffer& buffer)
-{
-    stream.write(buffer.data(), buffer.size());
-    return stream;
-}
-
-std::fstream& operator>>(std::fstream& stream, crypto::Buffer& buffer)
-{
-    stream.read(buffer.data(), buffer.size());
-    buffer.resize(static_cast<int>(stream.gcount()));
-    return stream;
-}
-
+} 
