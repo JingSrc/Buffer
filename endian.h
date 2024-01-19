@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 
 static bool isBigEndian()
 {
@@ -20,8 +20,8 @@ template<> inline uint64_t swap<uint64_t>(uint64_t v)
            | ((v & uint64_t(0x00000000000000ff)) << 56)
            | ((v & uint64_t(0x000000000000ff00)) << 40)
            | ((v & uint64_t(0x0000000000ff0000)) << 24)
-           | ((v & uint64_t(0x00000000ff000000)) << 8 )
-           | ((v & uint64_t(0x000000ff00000000)) >> 8 )
+           | ((v & uint64_t(0x00000000ff000000)) << 8)
+           | ((v & uint64_t(0x000000ff00000000)) >> 8)
            | ((v & uint64_t(0x0000ff0000000000)) >> 24)
            | ((v & uint64_t(0x00ff000000000000)) >> 40)
            | ((v & uint64_t(0xff00000000000000)) >> 56);
@@ -31,8 +31,8 @@ template<> inline uint32_t swap<uint32_t>(uint32_t v)
 {
     return 0
            | ((v & 0x000000ff) << 24)
-           | ((v & 0x0000ff00) << 8 )
-           | ((v & 0x00ff0000) >> 8 )
+           | ((v & 0x0000ff00) << 8)
+           | ((v & 0x00ff0000) >> 8)
            | ((v & 0xff000000) >> 24);
 }
 
