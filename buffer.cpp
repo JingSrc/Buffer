@@ -195,6 +195,22 @@ Buffer Base64::decode(const std::string& base64)
     return Buffer{ ret };
 }
 
+template<typename T>
+BufferReader& read(BufferReader& reader, T& data)
+{
+    if (reader.read((char*)&data, sizeof(T)) == sizeof(T)) {
+        data = crypto::fromBigEndian(data);
+    }
+    return reader;
+}
+
+template<typename T>
+BufferWriter& write(BufferWriter& writer, T data)
+{
+    auto v = crypto::toBigEndian(data);
+    return writer.write((const char*)&v, sizeof(T));
+}
+
 }
 
 class BufferPrivate
@@ -595,13 +611,6 @@ Buffer Buffer::fromBase64(const std::string& base64)
     return Base64::decode(base64);
 }
 
-template<typename T>
-BufferWriter& write(BufferWriter& writer, T data)
-{
-    auto v = crypto::toBigEndian(data);
-    return writer.write((const char*)&v, sizeof(T));
-}
-
 BufferWriter::BufferWriter(Buffer& buffer)
     : m_buffer{ buffer }
 {
@@ -675,15 +684,6 @@ BufferWriter& BufferWriter::operator<<(const Buffer& value)
 {
     m_buffer.append(value);
     return *this;
-}
-
-template<typename T>
-BufferReader& read(BufferReader& reader, T& data)
-{
-    if (reader.read((char*)&data, sizeof(T)) == sizeof(T)) {
-        data = crypto::fromBigEndian(data);
-    }
-    return reader;
 }
 
 BufferReader::BufferReader(const Buffer& buffer)
