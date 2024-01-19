@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <fstream>
 
 class BufferPrivate;
 
@@ -9,8 +8,8 @@ class Buffer
 {
 public:
     explicit Buffer(int size = -1);
-    explicit Buffer(const char* data, int size = -1);
-    explicit Buffer(const std::string& data);
+    Buffer(const char* data, int size = -1);
+    Buffer(const std::string& data);
     ~Buffer();
 
     Buffer(const Buffer& other);
@@ -124,8 +123,3 @@ private:
     const Buffer& m_buffer;
     int m_position;
 };
-
-std::ofstream& operator<<(std::ofstream& stream, const crypto::Buffer& buffer);
-std::ifstream& operator>>(std::ifstream& stream, crypto::Buffer& buffer);
-std::fstream& operator<<(std::fstream& stream, const crypto::Buffer& buffer);
-std::fstream& operator>>(std::fstream& stream, crypto::Buffer& buffer);
