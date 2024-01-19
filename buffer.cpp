@@ -3,6 +3,9 @@
 #include "buffer.h"
 #include "endian.h"
 
+namespace
+{
+
 class Base64
 {
 public:
@@ -50,6 +53,149 @@ private:
 };
 
 const std::string Hex::Chars{ "0123456789ABCDEF" };
+
+std::string Hex::encode(const Buffer &buffer)
+{
+    std::string hexStr;
+    auto size = buffer.size();
+    auto data = buffer.data();
+
+    for (int i = 0; i < size; ++i) {
+        hexStr += Chars[(data[i] & 0xf0) >> 4];
+        hexStr += Chars[(data[i] & 0x0f) >> 0];
+    }
+
+    return hexStr;
+}
+
+Buffer Hex::decode(const std::string& hex)
+{
+    Buffer buffer;
+    std::string hexStr;
+    char* data;
+    char ch;
+    size_t i = 0;
+    int j = 0;
+
+    auto size = static_cast<int>(hex.size());
+    if (size % 2 != 0) {
+        return buffer;
+    }
+
+    buffer.resize(size / 2);
+    data = buffer.data();
+    for (i = 0; i < size; i += 2) {
+        ch = hexToUpper(hex.at(i));
+        if (!isHex(ch)) {
+            break;
+        }
+        data[j++] = static_cast<char>(Chars.find(hex.at(i)) << 4 | Chars.find(hex.at(i + 1)));
+    }
+
+    return buffer;
+}
+
+std::string Base64::encode(const Buffer &buffer)
+{
+    std::string ret;
+    int i = 0;
+    int j = 0;
+    char charArray_3[3];
+    char charArray_4[4];
+
+    auto bytesToEncode = buffer.data();
+    auto inLen = buffer.size();
+
+    while (inLen--) {
+        charArray_3[i++] = *(bytesToEncode++);
+        if (i == 3) {
+            charArray_4[0] = (charArray_3[0] & 0xfc) >> 2;
+            charArray_4[1] = ((charArray_3[0] & 0x03) << 4) + ((charArray_3[1] & 0xf0) >> 4);
+            charArray_4[2] = ((charArray_3[1] & 0x0f) << 2) + ((charArray_3[2] & 0xc0) >> 6);
+            charArray_4[3] = charArray_3[2] & 0x3f;
+
+            for (i = 0; i < 4; ++i) {
+                ret += Chars[charArray_4[i]];
+            }
+
+            i = 0;
+        }
+    }
+
+    if (i) {
+        for (j = i; j < 3; ++j) {
+            charArray_3[j] = '\0';
+        }
+
+        charArray_4[0] = (charArray_3[0] & 0xfc) >> 2;
+        charArray_4[1] = ((charArray_3[0] & 0x03) << 4) + ((charArray_3[1] & 0xf0) >> 4);
+        charArray_4[2] = ((charArray_3[1] & 0x0f) << 2) + ((charArray_3[2] & 0xc0) >> 6);
+        charArray_4[3] = charArray_3[2] & 0x3f;
+
+        for (j = 0; j < i + 1; ++j) {
+            ret += Chars[charArray_4[j]];
+        }
+
+        while (i++ < 3) {
+            ret += '=';
+        }
+    }
+
+    return ret;
+}
+
+Buffer Base64::decode(const std::string& base64)
+{
+    size_t inLen = base64.size();
+    int i = 0;
+    int j = 0;
+    int in = 0;
+    char charArray_4[4], charArray_3[3];
+    std::string ret;
+
+    while (inLen-- && (base64[in] != '=') && isBase64(base64[in])) {
+        charArray_4[i++] = base64[in];
+        ++in;
+
+        if (i == 4) {
+            for (i = 0; i < 4; ++i) {
+                charArray_4[i] = static_cast<char>(Chars.find(charArray_4[i]));
+            }
+
+            charArray_3[0] = (charArray_4[0] << 2) + ((charArray_4[1] & 0x30) >> 4);
+            charArray_3[1] = ((charArray_4[1] & 0xf) << 4) + ((charArray_4[2] & 0x3c) >> 2);
+            charArray_3[2] = ((charArray_4[2] & 0x3) << 6) + charArray_4[3];
+
+            for (i = 0; (i < 3); ++i) {
+                ret += charArray_3[i];
+            }
+
+            i = 0;
+        }
+    }
+
+    if (i) {
+        for (j = i; j < 4; ++j) {
+            charArray_4[j] = 0;
+        }
+
+        for (j = 0; j < 4; ++j) {
+            charArray_4[j] = static_cast<char>(Chars.find(charArray_4[j]));
+        }
+
+        charArray_3[0] = (charArray_4[0] << 2) + ((charArray_4[1] & 0x30) >> 4);
+        charArray_3[1] = ((charArray_4[1] & 0xf) << 4) + ((charArray_4[2] & 0x3c) >> 2);
+        charArray_3[2] = ((charArray_4[2] & 0x3) << 6) + charArray_4[3];
+
+        for (j = 0; (j < i - 1); ++j) {
+            ret += charArray_3[j];
+        }
+    }
+
+    return Buffer{ ret };
+}
+
+}
 
 class BufferPrivate
 {
@@ -449,147 +595,6 @@ Buffer Buffer::fromBase64(const std::string& base64)
     return Base64::decode(base64);
 }
 
-std::string Hex::encode(const Buffer& buffer)
-{
-    std::string hexStr;
-    auto size = buffer.size();
-    auto data = buffer.data();
-
-    for (int i = 0; i < size; ++i) {
-        hexStr += Chars[(data[i] & 0xf0) >> 4];
-        hexStr += Chars[(data[i] & 0x0f) >> 0];
-    }
-
-    return hexStr;
-}
-
-Buffer Hex::decode(const std::string& hex)
-{
-    Buffer buffer;
-    std::string hexStr;
-    char* data;
-    char ch;
-    size_t i = 0;
-    int j = 0;
-
-    auto size = static_cast<int>(hex.size());
-    if (size % 2 != 0) {
-        return buffer;
-    }
-
-    buffer.resize(size / 2);
-    data = buffer.data();
-    for (i = 0; i < size; i += 2) {
-        ch = hexToUpper(hex.at(i));
-        if (!isHex(ch)) {
-            break;
-        }
-        data[j++] = static_cast<char>(Chars.find(hex.at(i)) << 4 | Chars.find(hex.at(i + 1)));
-    }
-
-    return buffer;
-}
-
-std::string Base64::encode(const Buffer& buffer)
-{
-    std::string ret;
-    int i = 0;
-    int j = 0;
-    char charArray_3[3];
-    char charArray_4[4];
-
-    auto bytesToEncode = buffer.data();
-    auto inLen = buffer.size();
-
-    while (inLen--) {
-        charArray_3[i++] = *(bytesToEncode++);
-        if (i == 3) {
-            charArray_4[0] = (charArray_3[0] & 0xfc) >> 2;
-            charArray_4[1] = ((charArray_3[0] & 0x03) << 4) + ((charArray_3[1] & 0xf0) >> 4);
-            charArray_4[2] = ((charArray_3[1] & 0x0f) << 2) + ((charArray_3[2] & 0xc0) >> 6);
-            charArray_4[3] = charArray_3[2] & 0x3f;
-
-            for (i = 0; i < 4; ++i) {
-                ret += Chars[charArray_4[i]];
-            }
-
-            i = 0;
-        }
-    }
-
-    if (i) {
-        for (j = i; j < 3; ++j) {
-            charArray_3[j] = '\0';
-        }
-
-        charArray_4[0] = (charArray_3[0] & 0xfc) >> 2;
-        charArray_4[1] = ((charArray_3[0] & 0x03) << 4) + ((charArray_3[1] & 0xf0) >> 4);
-        charArray_4[2] = ((charArray_3[1] & 0x0f) << 2) + ((charArray_3[2] & 0xc0) >> 6);
-        charArray_4[3] = charArray_3[2] & 0x3f;
-
-        for (j = 0; j < i + 1; ++j) {
-            ret += Chars[charArray_4[j]];
-        }
-
-        while (i++ < 3) {
-            ret += '=';
-        }
-    }
-
-    return ret;
-}
-
-Buffer Base64::decode(const std::string& base64)
-{
-    size_t inLen = base64.size();
-    int i = 0;
-    int j = 0;
-    int in = 0;
-    char charArray_4[4], charArray_3[3];
-    std::string ret;
-
-    while (inLen-- && (base64[in] != '=') && isBase64(base64[in])) {
-        charArray_4[i++] = base64[in];
-        ++in;
-
-        if (i == 4) {
-            for (i = 0; i < 4; ++i) {
-                charArray_4[i] = static_cast<char>(Chars.find(charArray_4[i]));
-            }
-
-            charArray_3[0] = (charArray_4[0] << 2) + ((charArray_4[1] & 0x30) >> 4);
-            charArray_3[1] = ((charArray_4[1] & 0xf) << 4) + ((charArray_4[2] & 0x3c) >> 2);
-            charArray_3[2] = ((charArray_4[2] & 0x3) << 6) + charArray_4[3];
-
-            for (i = 0; (i < 3); ++i) {
-                ret += charArray_3[i];
-            }
-
-            i = 0;
-        }
-    }
-
-    if (i) {
-        for (j = i; j < 4; ++j) {
-            charArray_4[j] = 0;
-        }
-
-        for (j = 0; j < 4; ++j) {
-            charArray_4[j] = static_cast<char>(Chars.find(charArray_4[j]));
-        }
-
-        charArray_3[0] = (charArray_4[0] << 2) + ((charArray_4[1] & 0x30) >> 4);
-        charArray_3[1] = ((charArray_4[1] & 0xf) << 4) + ((charArray_4[2] & 0x3c) >> 2);
-        charArray_3[2] = ((charArray_4[2] & 0x3) << 6) + charArray_4[3];
-
-        for (j = 0; (j < i - 1); ++j) {
-            ret += charArray_3[j];
-        }
-    }
-
-    return Buffer{ ret };
-}
-
 template<typename T>
 BufferWriter& write(BufferWriter& writer, T data)
 {
@@ -809,4 +814,5 @@ BufferReader& BufferReader::operator>>(Buffer& buffer)
 {
     read(buffer.data(), buffer.size());
     return *this;
-} 
+}
+
